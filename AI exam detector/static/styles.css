@@ -1,0 +1,115 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1f3290, #000c18);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #1a237e;
+}
+
+
+/* Login Card */
+.login-container {
+    background: rgba(255, 255, 255, 0.96);
+    width: 380px;
+    padding: 36px 34px 32px;
+    border-radius: 14px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    animation: fadeUp 0.6s ease;
+}
+
+/* Heading */
+.login-container h2 {
+    text-align: center;
+    font-size: 1.9rem;
+    color: #1a237e;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+}
+
+/* Form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #303f9f;
+}
+
+input[type="text"],
+input[type="password"] {
+    padding: 11px 12px;
+    border-radius: 7px;
+    border: 1px solid #c5cae9;
+    background: #f5f7ff;
+    font-size: 0.95rem;
+    color: #1a237e;
+    transition: all 0.25s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: #3f51b5;
+    box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.15);
+    background: #ffffff;
+}
+
+/* Button */
+input[type="submit"] {
+    margin-top: 12px;
+    padding: 11px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #3f51b5, #1a237e);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+input[type="submit"]:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(26, 35, 126, 0.45);
+}
+
+/* Flash messages */
+ul {
+    list-style: none;
+    margin-bottom: 12px;
+    padding: 0;
+}
+
+ul li {
+    background: #ffebee;
+    color: #c62828;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+/* Animation */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
