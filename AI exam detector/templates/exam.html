@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exam</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        #timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #111827;
+            color: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        video {
+            width: 320px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="timer">Loading timer...</div>
+
+<h2>Exam in Progress</h2>
+
+<video id="examCam" autoplay muted playsinline></video>
+
+<script>
+
+
+/* ---------- Camera preview ---------- */
+navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+.then(stream => {
+    document.getElementById('examCam').srcObject = stream;
+})
+.catch(() => {
+    console.warn("Camera not available");
+});
+
+/* ---------- Timer logic ---------- */
+async function startTimer() {
+    const res = await fetch('/api/exam/time');
+    const data = await res.json();
+
+    if (!data.active) {
+        document.getElementById('timer').innerText = "Timer inactive";
+        return;
+    }
+
+    let remaining = data.remaining_seconds;
+
+    const interval = setInterval(() => {
+        if (remaining <= 0) {
+            clearInterval(interval);
+            document.getElementById('timer').innerText = "Time Up!";
+            alert("⏱ Time is up!");
+            return;
+        }
+
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+
+        document.getElementById('timer').innerText =
+            `Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        remaining--;
+    }, 1000);
+}
+
+startTimer();
+
+</script>
+
+</body>
+</html>
+

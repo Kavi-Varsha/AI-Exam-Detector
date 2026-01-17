@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify
 from functools import wraps
+from datetime import datetime, timedelta
+
 
 app = Flask(__name__)
 app.secret_key = 'ai_exam_detector_secret_key_0229'  
@@ -51,14 +53,73 @@ def login():
 @app.route('/instructions')
 @login_required
 def instructions():
-    # Only accessible if logged in
-    return 'Instructions Page - Only for logged in users.'
+    return render_template('instructions.html')
 
-# --- Exam Page (Protected, placeholder) ---
+# --- Checking Page (Protected) ---
+@app.route('/checking')
+@login_required
+def checking():
+    return render_template('checking.html')
+
+# --- Checking Page submit ---
+@app.route('/api/checking/submit', methods=['POST'])
+@login_required
+def submit_checking():
+    data = request.get_json(silent=True) or {}
+
+    camera = bool(data.get('camera'))
+    microphone = bool(data.get('microphone'))
+    fullscreen = bool(data.get('fullscreen'))
+    network = bool(data.get('network'))   
+
+    if camera and microphone and fullscreen and network:
+        session['system_check_passed'] = True
+
+        # Start exam timer here (as you wanted)
+        start_time = datetime.utcnow()
+        end_time = start_time + timedelta(minutes=45)
+
+        session['exam_start_time'] = start_time.isoformat()
+        session['exam_end_time'] = end_time.isoformat()
+
+        return jsonify({"status": "passed"}), 200
+
+    session['system_check_passed'] = False
+    return jsonify({"status": "failed"}), 403
+
+# --- ExamPage (Protected) ---
+
 @app.route('/exam')
 @login_required
 def exam():
-    return 'Exam Page - Only for logged in users.'
+    if not session.get('system_check_passed'):
+        flash('Complete system checks first.')
+        return redirect(url_for('checking'))
+
+   
+    return render_template('exam.html')
+
+# --- Exam Timer Status API ---
+@app.route('/api/exam/time')
+@login_required
+def exam_time():
+    start = session.get('exam_start_time')
+    end = session.get('exam_end_time')
+
+    if not start or not end:
+        return jsonify({"active": False}), 200
+
+    end_time = datetime.fromisoformat(end)
+    now = datetime.utcnow()
+
+    remaining_seconds = int((end_time - now).total_seconds())
+
+    return jsonify({
+        "active": True,
+        "remaining_seconds": max(0, remaining_seconds)
+    }), 200
+
+
 
 # --- Result Page (Protected, placeholder) ---
 @app.route('/result')

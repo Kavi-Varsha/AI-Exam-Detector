@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Check</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f7fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            width: 450px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        video {
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .ok { color: green; }
+        .fail { color: red; }
+
+        button {
+            margin-top: 10px;
+            padding: 12px;
+            width: 100%;
+            font-size: 16px;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>System Check</h2>
+
+    <video id="cameraPreview" autoplay muted playsinline></video>
+
+    <p id="cameraStatus">📷 Camera: Pending</p>
+    <p id="micStatus">🎤 Microphone: Pending</p>
+    <p id="fullscreenStatus">🖥 Fullscreen: Pending</p>
+    <p id="networkStatus">🌐 Network: Pending</p>
+
+
+    <!-- Sequential buttons -->
+    <button onclick="checkCamera()">1️⃣ Check Camera</button>
+    <button id="micBtn" onclick="checkMic()" disabled>2️⃣ Check Microphone</button>
+    <button id="fullscreenBtn" onclick="checkFullscreen()" disabled>3️⃣ Enable Fullscreen</button>
+
+    <button id="proceedBtn" onclick="proceedToExam()" disabled>Proceed to Exam</button>
+</div>
+
+<script>
+/* ---------- Helper ---------- */
+function isVideoActuallyPlaying(video) {
+    return (
+        video.readyState >= 2 &&
+        !video.paused &&
+        video.videoWidth > 0 &&
+        video.videoHeight > 0
+    );
+}
+
+/* ---------- State ---------- */
+let cameraStream = null;
+let cameraOk = false;
+let micOk = false;
+let fullscreenOk = false; 
+let fullscreenValidated = false;
+let networkOk = false;
+let mediaStream = null;
+
+
+
+/* ---------- Step 1: Camera ---------- */
+async function checkCamera() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
+
+        const video = document.getElementById('cameraPreview');
+        video.srcObject = mediaStream;
+
+        setTimeout(() => {
+            if (isVideoActuallyPlaying(video)) {
+                cameraOk = true;
+
+                document.getElementById('cameraStatus').innerText =
+                    "📷 Camera: Active ✔";
+                document.getElementById('cameraStatus').className = "ok";
+
+                document.getElementById('micBtn').disabled = false;
+                updateProceedButton();
+            } else {
+                cameraOk = false;
+                updateProceedButton();
+            }
+        }, 1000);
+
+        // 🔴 Detect camera turned off
+        mediaStream.getVideoTracks()[0].addEventListener('ended', () => {
+            cameraOk = false;
+            alert("⚠️ Camera turned off");
+            updateProceedButton();
+        });
+
+    } catch {
+        cameraOk = false;
+        alert("Camera access denied");
+        updateProceedButton();
+    }
+}
+
+
+/* ---------- Step 2: Microphone ---------- */
+async function checkMic() {
+    try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true
+        });
+
+        // Add mic track to existing stream
+        const audioTrack = audioStream.getAudioTracks()[0];
+        mediaStream.addTrack(audioTrack);
+
+        micOk = true;
+
+        document.getElementById('micStatus').innerText =
+            "🎤 Microphone: Active ✔";
+        document.getElementById('micStatus').className = "ok";
+
+        document.getElementById('fullscreenBtn').disabled = false;
+        updateProceedButton();
+
+        // 🔴 Detect mic turned off
+        audioTrack.addEventListener('ended', () => {
+            micOk = false;
+            alert("⚠️ Microphone turned off");
+            updateProceedButton();
+        });
+
+    } catch {
+        micOk = false;
+        alert("Microphone access denied");
+        updateProceedButton();
+    }
+}
+
+
+/* ---------- Step 3: Fullscreen ---------- */
+
+
+async function checkFullscreen() {
+    try {
+        await document.documentElement.requestFullscreen();
+
+        fullscreenValidated = true; // 🔒 LOCK VALIDATION
+        document.getElementById('fullscreenStatus').innerText =
+            "🖥 Fullscreen: Enabled ✔";
+        document.getElementById('fullscreenStatus').className = "ok";
+
+        updateProceedButton();
+    } catch {
+        fullscreenValidated = false;
+        document.getElementById('fullscreenStatus').innerText =
+            "🖥 Fullscreen: Failed ✖";
+        document.getElementById('fullscreenStatus').className = "fail";
+    }
+}
+
+/* ---------- Network ---------- */
+function checkNetwork() {
+    if (navigator.onLine) {
+        networkOk = true;
+        document.getElementById('networkStatus').innerText = "🌐 Network: Online ✔";
+        document.getElementById('networkStatus').className = "ok";
+    } else {
+        networkOk = false;
+        document.getElementById('networkStatus').innerText = "🌐 Network: Offline ✖";
+        document.getElementById('networkStatus').className = "fail";
+    }
+
+    updateProceedButton();
+}
+
+window.addEventListener('online', checkNetwork);
+window.addEventListener('offline', checkNetwork);
+document.addEventListener('DOMContentLoaded', checkNetwork);
+
+/* ---------- Proceed ---------- */
+function updateProceedButton() {
+    document.getElementById('proceedBtn').disabled =
+        !(cameraOk && micOk && fullscreenValidated && networkOk);
+}
+
+
+async function proceedToExam() {
+    try {
+        // ✅ User gesture → fullscreen allowed
+        await document.documentElement.requestFullscreen();
+    } catch (err) {
+        alert("Please allow fullscreen to continue.");
+        return;
+    }
+
+    const response = await fetch('/api/checking/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            camera: cameraOk,
+            microphone: micOk,
+            fullscreen: true,
+            network: networkOk
+        })
+    });
+
+    if (response.ok) {
+        window.location.href = "/exam";
+    } else {
+        alert("System check incomplete.");
+    }
+}
+
+
+
+</script>
+
+
+
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Exam Instructions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            background: #4f46e5;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+        
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+
+    </style>
+</head>
+<body>
+
+<form action="{{ url_for('logout') }}"
+      method="get"
+      onsubmit="return confirmLogout()"
+      class="logout-btn">
+    <button type="submit">Logout</button>
+</form>
+
+
+<div class="container">
+    <h2>Exam Instructions</h2>
+
+    <p>Please read the instructions carefully before starting the exam.</p>
+    <ul style="text-align:left">
+        <li>Do not refresh the page</li>
+        <li>Stay in fullscreen mode</li>
+        <li>Switching tabs will be logged</li>
+    </ul>
+
+    <form action="{{ url_for('checking') }}" method="get">
+        <button type="submit">I Understand & Continue</button>
+    </form>
+</div>
+
+<script>
+function confirmLogout() {
+    return confirm("Are you sure you want to logout?");
+}
+</script>
+
+</body>
+</html>
