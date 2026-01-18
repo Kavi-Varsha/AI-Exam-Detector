@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Check</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+    
+    .container {
+      max-width: 420px;
+      margin: 60px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(30, 40, 90, 0.08);
+      padding: 36px 28px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .container h1 {
+      font-size: 2rem;
+      color: #1a237e;
+      margin-bottom: 18px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-align: center;
+    }
+    .checklist {
+      margin-bottom: 24px;
+      padding: 0;
+      list-style: none;
+    }
+    .checklist li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f6f8fc;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      font-size: 1.08rem;
+      color: #2d3a5a;
+    }
+    .status {
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding-left: 12px;
+    }
+    .status.success {
+      color: #1aaf5d;
+    }
+    .status.fail {
+      color: #d32f2f;
+    }
+    .camera-preview {
+      background: #f6f8fc;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+    .camera-preview video, .camera-preview img {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 6px;
+      background: #222;
+      min-height: 120px;
+    }
+    .cta-btn {
+      background: #1a237e;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      padding: 13px 0;
+      font-size: 1.13rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.2s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .cta-btn:disabled {
+      background: #bfc5d2;
+      color: #fff;
+      cursor: not-allowed;
+    }
+    .cta-btn:focus {
+      outline: 2px solid #1a237e;
+    }
+    @media (max-width: 600px) {
+      .container {
+        max-width: 98vw;
+        margin: 24px 2vw;
+        padding: 18px 8vw 18px 8vw;
+      }
+    }
+    .ok { color: #1aaf5d; }
+    .fail { color: #d32f2f; }
+  </style>
+</head>
+<body>
+  
+  <main>
+    <section class="container" aria-labelledby="system-check-title">
+      <h1 id="system-check-title">System Check</h1>
+      <!-- Checklist UI -->
+      <ul class="checklist" aria-label="System Check Steps">
+        <li>
+          <span>Camera Access</span>
+          <span id="cameraStatus" class="status fail" aria-live="polite">Pending</span>
+        </li>
+        <li>
+          <span>Microphone Access</span>
+          <span id="micStatus" class="status fail" aria-live="polite">Pending</span>
+        </li>
+        <li>
+          <span>Fullscreen Mode</span>
+          <span id="fullscreenStatus" class="status fail" aria-live="polite">Pending</span>
+        </li>
+        <li>
+          <span>Network Connection</span>
+          <span id="networkStatus" class="status fail" aria-live="polite">Pending</span>
+        </li>
+      </ul>
+      <div class="camera-preview" aria-label="Camera Preview">
+        <video id="cameraPreview" autoplay muted playsinline aria-label="Camera Preview"></video>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button onclick="checkCamera()" style="background:#388e3c;color:#fff;border:none;border-radius:6px;padding:12px 0;font-size:1.08rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Check Camera</button>
+        <button id="micBtn" onclick="checkMic()" disabled style="background:#388e3c;color:#fff;border:none;border-radius:6px;padding:12px 0;font-size:1.08rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Check Microphone</button>
+        <button id="fullscreenBtn" onclick="checkFullscreen()" disabled style="background:#388e3c;color:#fff;border:none;border-radius:6px;padding:12px 0;font-size:1.08rem;font-weight:600;cursor:pointer;transition:background 0.2s;">Enable Fullscreen</button>
+        <button id="proceedBtn" onclick="proceedToExam()" disabled class="cta-btn" aria-disabled="true">Proceed to Exam</button>
+      </div>
+    </section>
+  </main>
+<script>
+/* ---------- Helper ---------- */
+function isVideoActuallyPlaying(video) {
+    return (
+        video.readyState >= 2 &&
+        !video.paused &&
+        video.videoWidth > 0 &&
+        video.videoHeight > 0
+    );
+}
+
+/* ---------- State ---------- */
+let cameraStream = null;
+let cameraOk = false;
+let micOk = false;
+let fullscreenOk = false; 
+let fullscreenValidated = false;
+let networkOk = false;
+let mediaStream = null;
+
+/* ---------- Step 1: Camera ---------- */
+async function checkCamera() {
+    try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true
+        });
+
+        const video = document.getElementById('cameraPreview');
+        video.srcObject = mediaStream;
+
+        setTimeout(() => {
+            if (isVideoActuallyPlaying(video)) {
+                cameraOk = true;
+
+                document.getElementById('cameraStatus').innerText =
+                    "📷 Camera: Active ✔";
+                document.getElementById('cameraStatus').className = "status success";
+
+                document.getElementById('micBtn').disabled = false;
+                updateProceedButton();
+            } else {
+                cameraOk = false;
+                document.getElementById('cameraStatus').innerText = "📷 Camera: Failed ✖";
+                document.getElementById('cameraStatus').className = "status fail";
+                updateProceedButton();
+            }
+        }, 1000);
+
+        // 🔴 Detect camera turned off
+        mediaStream.getVideoTracks()[0].addEventListener('ended', () => {
+            cameraOk = false;
+            document.getElementById('cameraStatus').innerText = "📷 Camera: Off ✖";
+            document.getElementById('cameraStatus').className = "status fail";
+            alert("⚠️ Camera turned off");
+            updateProceedButton();
+        });
+
+    } catch {
+        cameraOk = false;
+        document.getElementById('cameraStatus').innerText = "📷 Camera: Denied ✖";
+        document.getElementById('cameraStatus').className = "status fail";
+        alert("Camera access denied");
+        updateProceedButton();
+    }
+}
+
+/* ---------- Step 2: Microphone ---------- */
+async function checkMic() {
+    try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: true
+        });
+
+        // Add mic track to existing stream
+        const audioTrack = audioStream.getAudioTracks()[0];
+        mediaStream.addTrack(audioTrack);
+
+        micOk = true;
+
+        document.getElementById('micStatus').innerText =
+            "🎤 Microphone: Active ✔";
+        document.getElementById('micStatus').className = "status success";
+
+        document.getElementById('fullscreenBtn').disabled = false;
+        updateProceedButton();
+
+        // 🔴 Detect mic turned off
+        audioTrack.addEventListener('ended', () => {
+            micOk = false;
+            document.getElementById('micStatus').innerText = "🎤 Microphone: Off ✖";
+            document.getElementById('micStatus').className = "status fail";
+            alert("⚠️ Microphone turned off");
+            updateProceedButton();
+        });
+
+    } catch {
+        micOk = false;
+        document.getElementById('micStatus').innerText = "🎤 Microphone: Denied ✖";
+        document.getElementById('micStatus').className = "status fail";
+        alert("Microphone access denied");
+        updateProceedButton();
+    }
+}
+
+/* ---------- Step 3: Fullscreen ---------- */
+async function checkFullscreen() {
+    try {
+        await document.documentElement.requestFullscreen();
+
+        fullscreenValidated = true; // 🔒 LOCK VALIDATION
+        document.getElementById('fullscreenStatus').innerText =
+            "🖥 Fullscreen: Enabled ✔";
+        document.getElementById('fullscreenStatus').className = "status success";
+
+        updateProceedButton();
+    } catch {
+        fullscreenValidated = false;
+        document.getElementById('fullscreenStatus').innerText =
+            "🖥 Fullscreen: Failed ✖";
+        document.getElementById('fullscreenStatus').className = "status fail";
+    }
+}
+
+/* ---------- Network ---------- */
+function checkNetwork() {
+    if (navigator.onLine) {
+        networkOk = true;
+        document.getElementById('networkStatus').innerText = "🌐 Network: Online ✔";
+        document.getElementById('networkStatus').className = "status success";
+    } else {
+        networkOk = false;
+        document.getElementById('networkStatus').innerText = "🌐 Network: Offline ✖";
+        document.getElementById('networkStatus').className = "status fail";
+    }
+
+    updateProceedButton();
+}
+
+window.addEventListener('online', checkNetwork);
+window.addEventListener('offline', checkNetwork);
+document.addEventListener('DOMContentLoaded', checkNetwork);
+
+/* ---------- Proceed ---------- */
+function updateProceedButton() {
+    document.getElementById('proceedBtn').disabled =
+        !(cameraOk && micOk && fullscreenValidated && networkOk);
+    if (document.getElementById('proceedBtn').disabled) {
+        document.getElementById('proceedBtn').setAttribute('aria-disabled', 'true');
+    } else {
+        document.getElementById('proceedBtn').removeAttribute('aria-disabled');
+    }
+}
+
+async function proceedToExam() {
+    try {
+        // ✅ User gesture → fullscreen allowed
+        await document.documentElement.requestFullscreen();
+    } catch (err) {
+        alert("Please allow fullscreen to continue.");
+        return;
+    }
+
+    const response = await fetch('/api/checking/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            camera: cameraOk,
+            microphone: micOk,
+            fullscreen: true,
+            network: networkOk
+        })
+    });
+
+    if (response.ok) {
+        window.location.href = "/exam";
+    } else {
+        alert("System check incomplete.");
+    }
+}
+</script>
+</body>
+</html>
