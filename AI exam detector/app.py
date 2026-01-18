@@ -47,12 +47,13 @@ def login():
     # GET: show login form 
     return render_template('login.html')
 
+
 # --- Instructions Page (Protected) ---
 @app.route('/instructions')
 @login_required
 def instructions():
     # Only accessible if logged in
-    return 'Instructions Page - Only for logged in users.'
+    return render_template('instructions.html')
 
 # --- Exam Page (Protected, placeholder) ---
 @app.route('/exam')
