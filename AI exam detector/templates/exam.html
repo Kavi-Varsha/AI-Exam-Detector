@@ -3,65 +3,354 @@
 <head>
     <title>Exam</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial;
-            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding-top: 80px;
+        }
+
+        /* Fixed Header */
+        .exam-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: white;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .exam-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+        }
+
+        .header-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .header-label {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .header-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-top: 4px;
         }
 
         #timer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #111827;
-            color: white;
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-size: 18px;
+            font-size: 24px;
+            color: #d32f2f;
             font-weight: bold;
         }
 
-        video {
-            width: 320px;
+        /* Question Navigation Panel */
+        .question-nav {
+            position: fixed;
+            right: 20px;
+            top: 100px;
+            width: 60px;
+            max-height: calc(100vh - 120px);
+            background: white;
             border-radius: 8px;
-            margin-top: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 12px;
+            overflow-y: auto;
+            z-index: 90;
+            border: 1px solid #e0e0e0;
+        }
+
+        .question-nav button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .question-nav button:hover {
+            background: #f5f5f5;
+            border-color: #1976d2;
+        }
+
+        .question-nav button.active {
+            background: #1976d2;
+            color: white;
+            border-color: #1976d2;
+        }
+
+        .question-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .question-nav::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .question-nav::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .question-nav::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        /* Adjust main container for nav bar */
+        .exam-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+            padding-right: 100px;
+        }
+
+        #questions-area {
+            margin-bottom: 40px;
+        }
+
+        /* Question Card */
+        .question-block {
+            background: white;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border-left: 4px solid #1976d2;
+        }
+
+        .question-block b {
+            display: block;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .question-block ul {
+            list-style-type: none;
+        }
+
+        .question-block li {
+            margin-bottom: 12px;
+        }
+
+        .question-block label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .question-block label:hover {
+            background: #f5f5f5;
+        }
+
+        .question-block input[type="radio"] {
+            cursor: pointer;
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Submit Button */
+        .submit-container {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+
+        button[type="submit"] {
+            font-size: 16px;
+            padding: 12px 32px;
+            background: #1976d2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button[type="submit"]:hover:not(:disabled) {
+            background: #1565c0;
+        }
+
+        button[type="submit"]:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        video {
+            display: none;
+        }
+
+        /* Flash-like notification */
+        .timer-notification {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff9800;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 4px;
+            z-index: 999;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
 <body>
 
-<div id="timer">Loading timer...</div>
+<!-- Fixed Header -->
+<div class="exam-header">
+    <div class="exam-title">AI Exam Detector</div>
+    <div class="header-right">
+        <div class="header-item">
+            <span class="header-label">Student</span>
+            <span class="header-value">{{ username }}</span>
+        </div>
+        <div class="header-item">
+            <span class="header-label">Time Left</span>
+            <span class="header-value" id="timer">--:--</span>
+        </div>
+    </div>
+</div>
 
-<h2>Exam in Progress</h2>
+<!-- Question Navigation Panel -->
+<div class="question-nav" id="question-nav">
+    <!-- Questions will be populated by JavaScript -->
+</div>
 
-<video id="examCam" autoplay muted playsinline></video>
+<!-- Main Container -->
+<div class="exam-container">
+    <!-- Video (hidden for now) -->
+    <video id="examCam" autoplay muted playsinline></video>
 
-<div id="questions-area">
-    {% if questions %}
-        <form id="exam-form" method="POST" action="/submit_exam">
-        {% for q in questions %}
-            <div class="question-block" style="margin-bottom: 24px;">
-                <div><b>Q{{ loop.index }}. {{ q.question }}</b></div>
-                <ul style="list-style-type: none; padding-left: 0;">
-                    {% for opt in q.options %}
-                        <li>
-                            <label>
-                                <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" {% if exam_submitted %}disabled{% endif %}>
-                                {{ opt }}
-                            </label>
-                        </li>
-                    {% endfor %}
-                </ul>
+    <!-- Questions Area -->
+    <div id="questions-area">
+        {% if questions %}
+            <form id="exam-form" method="POST" action="/submit_exam">
+            {% for q in questions %}
+                <div class="question-block" id="q{{ q.id }}">
+                    <b>Q{{ loop.index }}. {{ q.question }}</b>
+                    <ul>
+                        {% for opt in q.options %}
+                            <li>
+                                <label>
+                                    <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" {% if exam_submitted %}disabled{% endif %}>
+                                    {{ opt }}
+                                </label>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endfor %}
+            
+            <!-- Submit Button -->
+            <div class="submit-container">
+                <button type="submit" {% if exam_submitted %}disabled{% endif %}>Submit Exam</button>
             </div>
-        {% endfor %}
-        <button type="submit" style="font-size: 18px; padding: 8px 24px; margin-top: 16px;" {% if exam_submitted %}disabled{% endif %}>Submit Exam</button>
-        </form>
-    {% else %}
-        <div>No questions available.</div>
-    {% endif %}
+            </form>
+        {% else %}
+            <div class="question-block">
+                <b>No questions available.</b>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <script>
-
+// Display question navigation
+window.addEventListener('DOMContentLoaded', () => {
+    const questionBlocks = document.querySelectorAll('.question-block');
+    const navPanel = document.getElementById('question-nav');
+    
+    questionBlocks.forEach((block, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.innerText = (index + 1).toString();
+        button.dataset.questionIndex = index;
+        button.onclick = (e) => {
+            e.preventDefault();
+            block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            updateActiveNav();
+        };
+        navPanel.appendChild(button);
+    });
+    
+    // Update active nav button on scroll
+    function updateActiveNav() {
+        const buttons = navPanel.querySelectorAll('button');
+        const blocks = document.querySelectorAll('.question-block');
+        
+        blocks.forEach((block, index) => {
+            const rect = block.getBoundingClientRect();
+            if (rect.top >= 100 && rect.top < window.innerHeight / 2) {
+                buttons.forEach(b => b.classList.remove('active'));
+                buttons[index].classList.add('active');
+            }
+        });
+    }
+    
+    window.addEventListener('scroll', updateActiveNav);
+    // Set first question as active initially
+    if (navPanel.firstChild) {
+        navPanel.firstChild.classList.add('active');
+    }
+});
 
 /* ---------- Camera preview ---------- */
 navigator.mediaDevices.getUserMedia({ video: true, audio: false })
@@ -78,17 +367,52 @@ async function startTimer() {
     const data = await res.json();
 
     if (!data.active) {
-        document.getElementById('timer').innerText = "Timer inactive";
+        document.getElementById('timer').innerText = "Inactive";
         return;
     }
 
     let remaining = data.remaining_seconds;
+    const alertsShown = new Set(); // Track which alerts have been shown
 
-    const interval = setInterval(() => {
+    // Helper function to show flash notification
+    function showTimerNotification(message) {
+        const existingNotif = document.querySelector('.timer-notification');
+        if (existingNotif) {
+            existingNotif.remove();
+        }
+        
+        const notif = document.createElement('div');
+        notif.className = 'timer-notification';
+        notif.textContent = message;
+        document.body.appendChild(notif);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notif.remove();
+        }, 3000);
+    }
+
+    // Update display every second
+    const displayInterval = setInterval(() => {
+        // Check for milestone alerts (30s, 20s, 10s)
+        if (remaining === 30 && !alertsShown.has(30)) {
+            alertsShown.add(30);
+            showTimerNotification('⏰ 30 seconds remaining!');
+        } else if (remaining === 20 && !alertsShown.has(20)) {
+            alertsShown.add(20);
+            showTimerNotification('⏰ 20 seconds remaining!');
+        } else if (remaining === 10 && !alertsShown.has(10)) {
+            alertsShown.add(10);
+            showTimerNotification('⏰ 10 seconds remaining!');
+        }
+
         if (remaining <= 0) {
-            clearInterval(interval);
+            clearInterval(displayInterval);
+            clearInterval(syncInterval);
             document.getElementById('timer').innerText = "Time Up!";
-            alert("⏱ Time is up!");
+            document.getElementById('timer').style.color = '#d32f2f';
+            // Auto-submit exam when time is up
+            autoSubmitExam();
             return;
         }
 
@@ -96,10 +420,63 @@ async function startTimer() {
         const seconds = remaining % 60;
 
         document.getElementById('timer').innerText =
-            `Time Left: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
         remaining--;
     }, 1000);
+
+    // Re-sync with backend every 15 seconds to prevent drift/manipulation
+    const syncInterval = setInterval(async () => {
+        try {
+            const syncRes = await fetch('/api/exam/time');
+            const syncData = await syncRes.json();
+            
+            if (syncData.active) {
+                remaining = syncData.remaining_seconds;
+                // If backend says time is up, auto-submit immediately
+                if (remaining <= 0) {
+                    clearInterval(displayInterval);
+                    clearInterval(syncInterval);
+                    document.getElementById('timer').innerText = "Time Up!";
+                    document.getElementById('timer').style.color = '#d32f2f';
+                    autoSubmitExam();
+                }
+            } else {
+                clearInterval(displayInterval);
+                clearInterval(syncInterval);
+                document.getElementById('timer').innerText = "Time Up!";
+                document.getElementById('timer').style.color = '#d32f2f';
+                autoSubmitExam();
+            }
+        } catch (e) {
+            console.warn('Failed to sync timer:', e);
+        }
+    }, 15000);
+}
+
+// Auto-submit exam when time runs out
+function autoSubmitExam() {
+    const form = document.getElementById('exam-form');
+    if (form) {
+        // Disable all inputs
+        const inputs = form.querySelectorAll('input, button');
+        inputs.forEach(input => input.disabled = true);
+        
+        // Fade out form
+        form.style.opacity = '0.6';
+        form.style.pointerEvents = 'none';
+        
+        // Show message
+        const msg = document.createElement('div');
+        msg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; text-align: center;';
+        msg.innerHTML = '<h2>Time is Up!</h2><p>Your exam will be submitted automatically...</p>';
+        document.body.appendChild(msg);
+        
+        // Auto-submit after brief delay
+        setTimeout(() => {
+            form.submit();
+        }, 1500);
+    }
 }
 
 startTimer();
