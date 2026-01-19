@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash,jsonify
 from functools import wraps
 from datetime import datetime, timedelta
@@ -88,16 +89,76 @@ def submit_checking():
     return jsonify({"status": "failed"}), 403
 
 # --- ExamPage (Protected) ---
-
 @app.route('/exam')
 @login_required
 def exam():
     if not session.get('system_check_passed'):
         flash('Complete system checks first.')
         return redirect(url_for('checking'))
+    
+    # Block access if exam already submitted
+    if session.get('exam_submitted'):
+        flash('Exam already submitted. View your result.')
+        return redirect(url_for('result'))
 
-   
-    return render_template('exam.html')
+    # Import questions and prepare safe version (without 'correct' options)
+    from questions import questions as all_questions
+    safe_questions = [
+        {
+            'id': q['id'],
+            'question': q['question'],
+            'options': q['options']
+        }
+        for q in all_questions
+    ]
+    return render_template('exam.html', questions=safe_questions, exam_submitted=False)
+
+# --- Exam Submission Route (STEP 4: EVALUATION) ---
+@app.route('/submit_exam', methods=['POST'])
+@login_required
+def submit_exam():
+    from questions import questions as all_questions
+    
+    # Get all submitted answers from form
+    submitted = dict(request.form)
+    
+    # Initialize counters
+    total = len(all_questions)
+    correct_count = 0
+    wrong_count = 0
+    unanswered_count = 0
+    
+    # Evaluate each question (loop through question list, not answers)
+    for q in all_questions:
+        q_key = f"q_{q['id']}"
+        
+        if q_key not in submitted:
+            # Question was not answered
+            unanswered_count += 1
+        else:
+            # Question was answered - compare with correct answer
+            submitted_answer = int(submitted[q_key])
+            correct_answer = q['correct']
+            
+            if submitted_answer == correct_answer:
+                correct_count += 1
+            else:
+                wrong_count += 1
+    
+    # Store evaluation result in session (for result page to read)
+    session['exam_result'] = {
+        'total_questions': total,
+        'correct_count': correct_count,
+        'wrong_count': wrong_count,
+        'unanswered_count': unanswered_count,
+        'score': correct_count
+    }
+    
+    # Mark exam as submitted to block re-entry to exam page
+    session['exam_submitted'] = True
+    
+    # Redirect to result page
+    return redirect(url_for('result'))
 
 # --- Exam Timer Status API ---
 @app.route('/api/exam/time')
@@ -121,11 +182,22 @@ def exam_time():
 
 
 
-# --- Result Page (Protected, placeholder) ---
+# --- Result Page (STEP 5: DISPLAY RESULTS) ---
 @app.route('/result')
 @login_required
 def result():
-    return 'Result Page - Only for logged in users.'
+    # Read exam result from session (computed during submission)
+    exam_result = session.get('exam_result')
+    
+    if not exam_result:
+        # No exam result found - redirect to instructions
+        flash('No exam result found. Please take the exam first.')
+        return redirect(url_for('instructions'))
+    
+    # Pass result and username to template
+    return render_template('result.html', 
+                         result=exam_result,
+                         username=session.get('username'))
 
 # --- Logout Route ---
 

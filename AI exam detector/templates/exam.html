@@ -35,6 +35,31 @@
 
 <video id="examCam" autoplay muted playsinline></video>
 
+<div id="questions-area">
+    {% if questions %}
+        <form id="exam-form" method="POST" action="/submit_exam">
+        {% for q in questions %}
+            <div class="question-block" style="margin-bottom: 24px;">
+                <div><b>Q{{ loop.index }}. {{ q.question }}</b></div>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    {% for opt in q.options %}
+                        <li>
+                            <label>
+                                <input type="radio" name="q_{{ q.id }}" value="{{ loop.index0 }}" {% if exam_submitted %}disabled{% endif %}>
+                                {{ opt }}
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endfor %}
+        <button type="submit" style="font-size: 18px; padding: 8px 24px; margin-top: 16px;" {% if exam_submitted %}disabled{% endif %}>Submit Exam</button>
+        </form>
+    {% else %}
+        <div>No questions available.</div>
+    {% endif %}
+</div>
+
 <script>
 
 

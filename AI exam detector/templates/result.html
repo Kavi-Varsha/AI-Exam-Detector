@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exam Result</title>
+    <style>
+        body { font-family: Arial; padding: 24px; background: #f5f5f5; }
+        .result-container { background: white; padding: 32px; border-radius: 8px; max-width: 600px; margin: 0 auto; }
+        h1 { color: #333; }
+        .result-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .result-label { font-weight: bold; color: #555; }
+        .result-value { color: #333; font-size: 18px; font-weight: bold; }
+        .score-box { background: #e8f5e9; padding: 16px; border-radius: 8px; margin-top: 16px; text-align: center; }
+        .score-number { font-size: 32px; color: #2e7d32; font-weight: bold; }
+        .logout-btn { margin-top: 24px; padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; text-decoration: none; display: inline-block; cursor: pointer; }
+        .logout-btn:hover { background: #1565c0; }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <h1>Exam Result</h1>
+        
+        {% if result %}
+            <div class="result-row">
+                <span class="result-label">Username:</span>
+                <span class="result-value">{{ username }}</span>
+            </div>
+            
+            <div class="result-row">
+                <span class="result-label">Total Questions:</span>
+                <span class="result-value">{{ result.total_questions }}</span>
+            </div>
+            
+            <div class="result-row">
+                <span class="result-label">Correct Answers:</span>
+                <span class="result-value">{{ result.correct_count }}</span>
+            </div>
+            
+            <div class="result-row">
+                <span class="result-label">Wrong Answers:</span>
+                <span class="result-value">{{ result.wrong_count }}</span>
+            </div>
+            
+            <div class="result-row">
+                <span class="result-label">Unanswered:</span>
+                <span class="result-value">{{ result.unanswered_count }}</span>
+            </div>
+            
+            <div class="score-box">
+                <div>Your Score</div>
+                <div class="score-number">{{ result.score }} / {{ result.total_questions }}</div>
+            </div>
+        {% else %}
+            <p>No exam result available.</p>
+        {% endif %}
+        
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
