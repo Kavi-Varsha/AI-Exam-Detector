@@ -397,13 +397,13 @@ async function startTimer() {
         // Check for milestone alerts (30s, 20s, 10s)
         if (remaining === 30 && !alertsShown.has(30)) {
             alertsShown.add(30);
-            showTimerNotification('⏰ 30 seconds remaining!');
+            showTimerNotification('30 seconds remaining!');
         } else if (remaining === 20 && !alertsShown.has(20)) {
             alertsShown.add(20);
-            showTimerNotification('⏰ 20 seconds remaining!');
+            showTimerNotification('20 seconds remaining!');
         } else if (remaining === 10 && !alertsShown.has(10)) {
             alertsShown.add(10);
-            showTimerNotification('⏰ 10 seconds remaining!');
+            showTimerNotification('10 seconds remaining!');
         }
 
         if (remaining <= 0) {
