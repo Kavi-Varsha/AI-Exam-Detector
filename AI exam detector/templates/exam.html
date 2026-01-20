@@ -248,11 +248,91 @@
             to {
                 transform: translateX(-50%) translateY(0);
                 opacity: 1;
+
+        /* Fullscreen Requirement Modal */
+        .fullscreen-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .fullscreen-modal {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .fullscreen-modal h2 {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 16px;
+        }
+
+        .fullscreen-modal p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .fullscreen-modal .warning-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .fullscreen-modal button {
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .fullscreen-modal button:hover {
+            background: #1565c0;
+        }
             }
         }
     </style>
 </head>
 <body>
+
+<!-- Fullscreen Requirement Modal -->
+<div id="fullscreen-modal-overlay" class="fullscreen-modal-overlay">
+    <div class="fullscreen-modal">
+        <div class="warning-icon">⚠️</div>
+        <h2>Fullscreen Mode Required</h2>
+        <p>To maintain exam integrity, you must enter fullscreen mode to proceed with the exam.</p>
+        <p style="font-size: 14px; color: #999;">Pressing ESC will exit fullscreen, which will be logged as suspicious behavior.</p>
+        <button id="start-exam-btn">Start Exam in Fullscreen</button>
+    </div>
+</div>
+
+<!-- Fullscreen Re-enter Modal (hidden by default) -->
+<div id="fullscreen-reenter-overlay" class="fullscreen-modal-overlay" style="display: none;">
+    <div class="fullscreen-modal">
+        <div class="warning-icon" style="color: #d32f2f;">⚠️</div>
+        <h2>Fullscreen Exited</h2>
+        <p>You have exited fullscreen mode. This action has been logged as suspicious behavior.</p>
+        <p style="font-size: 14px; color: #666;">Please re-enter fullscreen to continue your exam.</p>
+        <button id="reenter-fullscreen-btn" style="background: #d32f2f;">Re-enter Fullscreen</button>
+    </div>
+</div>
 
 <!-- Fixed Header -->
 <div class="exam-header">
@@ -311,6 +391,186 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+// ========================================
+// FULLSCREEN MANAGEMENT SYSTEM
+// ========================================
+
+// Global state tracking
+let fullscreenActive = false;
+let examStarted = false;
+let fullscreenExitCount = 0;
+
+/**
+ * STEP 1: Request fullscreen on button click
+ * Only triggered by user gesture (browser requirement)
+ */
+document.getElementById('start-exam-btn').addEventListener('click', async () => {
+    try {
+        // Request fullscreen - only works with user gesture
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            // Safari
+            await document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            // Firefox
+            await document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            // IE/Edge
+            await document.documentElement.msRequestFullscreen();
+        }
+        
+        // Hide modal after successful fullscreen
+        setTimeout(() => {
+            document.getElementById('fullscreen-modal-overlay').style.display = 'none';
+            examStarted = true;
+        }, 300);
+    } catch (err) {
+        console.error('Fullscreen request failed:', err);
+        alert('Could not enter fullscreen. Please try again or check your browser settings.');
+    }
+});
+
+/**
+ * STEP 2: Track fullscreen state using document.fullscreenElement
+ * This is the reliable way to know if fullscreen is active
+ */
+function checkFullscreenState() {
+    // document.fullscreenElement is null when NOT in fullscreen
+    const isInFullscreen = document.fullscreenElement !== null;
+    
+    if (isInFullscreen) {
+        fullscreenActive = true;
+    } else {
+        fullscreenActive = false;
+    }
+    
+    return fullscreenActive;
+}
+
+/**
+ * Monitor fullscreen state changes
+ */
+document.addEventListener('fullscreenchange', () => {
+    const wasActive = fullscreenActive;
+    checkFullscreenState();
+    
+    // If exam started and user exited fullscreen
+    if (examStarted && wasActive && !fullscreenActive) {
+        handleFullscreenExit();
+    }
+});
+
+// Webkit variant (Safari)
+document.addEventListener('webkitfullscreenchange', () => {
+    const wasActive = fullscreenActive;
+    checkFullscreenState();
+    
+    if (examStarted && wasActive && !fullscreenActive) {
+        handleFullscreenExit();
+    }
+});
+
+// Mozilla variant (Firefox)
+document.addEventListener('mozfullscreenchange', () => {
+    const wasActive = fullscreenActive;
+    checkFullscreenState();
+    
+    if (examStarted && wasActive && !fullscreenActive) {
+        handleFullscreenExit();
+    }
+});
+
+// MS variant (IE/Edge)
+document.addEventListener('msfullscreenchange', () => {
+    const wasActive = fullscreenActive;
+    checkFullscreenState();
+    
+    if (examStarted && wasActive && !fullscreenActive) {
+        handleFullscreenExit();
+    }
+});
+
+/**
+ * Handle fullscreen exit
+ * - Log suspicious behavior to backend
+ * - Show warning banner
+ * - Prompt to re-enter
+ * - Exam continues (no auto-fail)
+ */
+async function handleFullscreenExit() {
+    fullscreenExitCount++;
+    
+    console.warn(`⚠️ Fullscreen exit detected (#${fullscreenExitCount})`);
+    
+    // Log to backend as suspicious behavior
+    try {
+        await fetch('/api/log-suspicious', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: 'fullscreen_exit',
+                count: fullscreenExitCount,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        console.error('Failed to log suspicious behavior:', err);
+    }
+    
+    // Show warning modal (centered container)
+    const overlay = document.getElementById('fullscreen-reenter-overlay');
+    overlay.style.display = 'flex';
+}
+
+/**
+ * Re-enter fullscreen button
+ */
+document.getElementById('reenter-fullscreen-btn').addEventListener('click', async () => {
+    try {
+        if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+        } else if (document.documentElement.webkitRequestFullscreen) {
+            await document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) {
+            await document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.msRequestFullscreen) {
+            await document.documentElement.msRequestFullscreen();
+        }
+        
+        // Hide warning modal after re-entering
+        setTimeout(() => {
+            document.getElementById('fullscreen-reenter-overlay').style.display = 'none';
+        }, 300);
+    } catch (err) {
+        console.error('Failed to re-enter fullscreen:', err);
+        alert('Could not re-enter fullscreen. Please try again.');
+    }
+});
+
+/**
+ * On page load, check fullscreen state
+ */
+window.addEventListener('DOMContentLoaded', () => {
+    checkFullscreenState();
+    
+    // Log initial state
+    console.log('📱 Fullscreen Mode Requirement: ACTIVE');
+    console.log('Rules locked:');
+    console.log('✅ 1. Fullscreen required on exam page');
+    console.log('✅ 2. User can exit (ESC allowed)');
+    console.log('✅ 3. Every exit logged as suspicious');
+    console.log('✅ 4. Exam continues after exit (no auto-fail)');
+    console.log('✅ 5. User warned and re-prompted');
+});
+
+// ========================================
+// END FULLSCREEN MANAGEMENT
+// ========================================
+
+</script>
 
 <script>
 // Display question navigation
@@ -534,4 +794,3 @@ startTimer();
 
 </body>
 </html>
-

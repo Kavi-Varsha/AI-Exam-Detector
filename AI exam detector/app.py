@@ -50,6 +50,7 @@ def login():
             session.pop('system_check_passed', None)
             session.pop('exam_start_time', None)
             session.pop('exam_end_time', None)
+            session.pop('suspicious_logs', None)
             session.modified = True
             
             return redirect(url_for('instructions'))
@@ -212,6 +213,35 @@ def exam_time():
         "remaining_seconds": max(0, remaining_seconds)
     }), 200
 
+# --- Log Suspicious Behavior API ---
+@app.route('/api/log-suspicious', methods=['POST'])
+@login_required
+def log_suspicious():
+    """
+    Log suspicious behavior events (e.g., fullscreen exits)
+    Used to track integrity violations during exam
+    """
+    data = request.get_json(silent=True) or {}
+    
+    username = session.get('username')
+    event = data.get('event')
+    count = data.get('count')
+    timestamp = data.get('timestamp')
+    
+    # Log to console (in production, save to database)
+    # print(f"[SUSPICIOUS] User: {username}, Event: {event}, Count: {count}, Time: {timestamp}")
+    
+    logs = session.get('suspicious_logs', [])
+    logs.append({
+        'event': event,
+        'count': count,
+        'timestamp': timestamp
+    })
+    session['suspicious_logs'] = logs
+    session.modified = True
+    
+    return jsonify({"status": "logged"}), 200
+
 
 
 # --- Result Page (STEP 5: DISPLAY RESULTS) ---
@@ -225,11 +255,13 @@ def result():
     # PRIORITY 2: Exam submitted, show result
     # Read exam result from session (computed during submission)
     exam_result = session.get('exam_result')
+    suspicious_logs = session.get('suspicious_logs', [])
     
     # Pass result and username to template
     return render_template('result.html', 
                          result=exam_result,
-                         username=session.get('username'))
+                         username=session.get('username'),
+                         suspicious_logs=suspicious_logs)
 
 # --- Logout Route ---
 
