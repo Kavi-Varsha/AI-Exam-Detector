@@ -325,8 +325,16 @@ window.addEventListener('DOMContentLoaded', () => {
         button.dataset.questionIndex = index;
         button.onclick = (e) => {
             e.preventDefault();
-            block.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            updateActiveNav();
+            // Scroll to the target block while accounting for the fixed header
+            const header = document.querySelector('.exam-header');
+            const headerHeight = header ? header.offsetHeight : 80;
+            const rect = block.getBoundingClientRect();
+            const targetY = window.scrollY + rect.top - headerHeight - 8; // small gap
+            window.scrollTo({ top: targetY, behavior: 'smooth' });
+            // Immediately mark this button active to reflect user's intent
+            const allButtons = navPanel.querySelectorAll('button');
+            allButtons.forEach(b => b.classList.remove('active'));
+            button.classList.add('active');
         };
         navPanel.appendChild(button);
     });
@@ -335,14 +343,24 @@ window.addEventListener('DOMContentLoaded', () => {
     function updateActiveNav() {
         const buttons = navPanel.querySelectorAll('button');
         const blocks = document.querySelectorAll('.question-block');
-        
+        // Choose the block closest to a reference Y (near header bottom)
+        const header = document.querySelector('.exam-header');
+        const headerHeight = header ? header.offsetHeight : 80;
+        const referenceY = headerHeight + 20; // roughly below header
+        let closestIndex = 0;
+        let closestDistance = Infinity;
+
         blocks.forEach((block, index) => {
             const rect = block.getBoundingClientRect();
-            if (rect.top >= 100 && rect.top < window.innerHeight / 2) {
-                buttons.forEach(b => b.classList.remove('active'));
-                buttons[index].classList.add('active');
+            const distance = Math.abs(rect.top - referenceY);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestIndex = index;
             }
         });
+
+        buttons.forEach(b => b.classList.remove('active'));
+        if (buttons[closestIndex]) buttons[closestIndex].classList.add('active');
     }
     
     window.addEventListener('scroll', updateActiveNav);
@@ -425,6 +443,15 @@ async function startTimer() {
         remaining--;
     }, 1000);
 
+    // If the user manually submits the form, stop both intervals to avoid
+    // a race where auto-submit fires after the manual submit.
+    const form = document.getElementById('exam-form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            clearInterval(displayInterval);
+            clearInterval(syncInterval);
+        });
+    }
     // Re-sync with backend every 15 seconds to prevent drift/manipulation
     const syncInterval = setInterval(async () => {
         try {
@@ -458,26 +485,48 @@ async function startTimer() {
 function autoSubmitExam() {
     const form = document.getElementById('exam-form');
     if (form) {
-        // Disable all inputs
-        const inputs = form.querySelectorAll('input, button');
-        inputs.forEach(input => input.disabled = true);
-        
-        // Fade out form
+        // Fade out form (do NOT disable inputs or controls before submit,
+        // disabled inputs are not included in form submissions)
         form.style.opacity = '0.6';
         form.style.pointerEvents = 'none';
-        
+
         // Show message
         const msg = document.createElement('div');
         msg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; text-align: center;';
         msg.innerHTML = '<h2>Time is Up!</h2><p>Your exam will be submitted automatically...</p>';
         document.body.appendChild(msg);
-        
-        // Auto-submit after brief delay
+
+        // Auto-submit after brief delay (keep inputs enabled so their values are sent)
         setTimeout(() => {
             form.submit();
         }, 1500);
     }
 }
+
+// Ensure manual submission stops the timer syncs to avoid race conditions
+// (defined inside startTimer so we attach here via startTimer scope)
+
+// Allow radio inputs to be toggled: clicking a selected radio will unselect it.
+// Works with mouse and touch. Skips disabled inputs.
+(function enableRadioToggle() {
+    const radios = document.querySelectorAll('input[type="radio"]');
+    radios.forEach(radio => {
+        // Record checked state before the browser toggles it
+        const saveState = (e) => { if (!radio.disabled) radio._wasChecked = radio.checked; };
+        radio.addEventListener('mousedown', saveState);
+        radio.addEventListener('touchstart', saveState, { passive: true });
+
+        radio.addEventListener('click', function (e) {
+            if (this.disabled) return;
+            if (this._wasChecked) {
+                // Uncheck and emit change so server-side listeners (if any) notice
+                this.checked = false;
+                const changeEvt = new Event('change', { bubbles: true });
+                this.dispatchEvent(changeEvt);
+            }
+        });
+    });
+})();
 
 startTimer();
 

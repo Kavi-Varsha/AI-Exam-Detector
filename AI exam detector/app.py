@@ -98,7 +98,7 @@ def submit_checking():
         # Start exam timer here (as you wanted)
         # TESTING: 2 minutes timer (change to 45 for production)
         start_time = datetime.utcnow()
-        end_time = start_time + timedelta(minutes=2)
+        end_time = start_time + timedelta(minutes=1)
 
         session['exam_start_time'] = start_time.isoformat()
         session['exam_end_time'] = end_time.isoformat()
