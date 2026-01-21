@@ -392,6 +392,45 @@
     </div>
 </div>
 
+<!-- Tab Switch Warning -->
+<div id="tab-warning" style="
+    display:none;
+    position:fixed;
+    top:120px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#f44336;
+    color:white;
+    padding:16px 24px;
+    border-radius:6px;
+    font-weight:bold;
+    z-index:3000;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+">
+⚠️ You switched tabs/windows. This action has been logged.
+</div>
+
+<!-- Integrity Warning Banner -->
+<div id="integrity-warning" style="
+    display:none;
+    position:fixed;
+    top:120px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#ff9800;
+    color:#333;
+    padding:16px 24px;
+    border-radius:6px;
+    font-weight:bold;
+    z-index:3000;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25);
+    max-width:80%;
+    text-align:center;
+">
+⚠️ Integrity warning
+</div>
+
+
 <script>
 // ========================================
 // FULLSCREEN MANAGEMENT SYSTEM
@@ -790,6 +829,101 @@ function autoSubmitExam() {
 
 startTimer();
 
+</script>
+<script>
+let tabSwitchCount = 0;
+let tabWarningVisible = false;
+let lastVisibilityState = document.visibilityState;
+
+document.addEventListener('visibilitychange', async () => {
+    lastVisibilityState = document.visibilityState;
+
+    if (document.visibilityState === 'hidden') {
+
+        tabSwitchCount++;
+        console.warn(`⚠️ TAB SWITCH DETECTED (#${tabSwitchCount})`);
+
+        // Show visual warning
+        const warning = document.getElementById('tab-warning');
+        warning.style.display = 'block';
+        tabWarningVisible = true;
+
+        // Log to backend
+        try {
+            await fetch('/api/log-suspicious', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'TAB_SWITCH',
+                    count: tabSwitchCount,
+                    timestamp: new Date().toISOString()
+                })
+            });
+        } catch (err) {
+            console.error('Failed to log tab switch:', err);
+        }
+    }
+
+    // User returned to tab
+    if (document.visibilityState === 'visible' && tabWarningVisible) {
+        setTimeout(() => {
+            document.getElementById('tab-warning').style.display = 'none';
+            tabWarningVisible = false;
+        }, 1500);
+    }
+});
+</script>
+
+
+<script>
+let windowBlurCount = 0;
+
+window.addEventListener('blur', async () => {
+
+    // Deduplication: TAB_SWITCH already logged
+    if (lastVisibilityState === 'hidden') {
+        return;
+    }
+
+    windowBlurCount++;
+    console.warn(`⚠️ WINDOW BLUR DETECTED (#${windowBlurCount})`);
+
+    const warning = document.getElementById('integrity-warning');
+
+    let message = '⚠️ You switched away from the exam window. This action has been logged.';
+    if (windowBlurCount >= 3) {
+        message = '⚠️ Multiple window focus losses detected. This will require review.';
+    }
+
+    warning.innerHTML = message;
+    warning.style.display = 'block';
+
+    setTimeout(() => {
+        warning.style.display = 'none';
+    }, 3500);
+
+    try {
+        await fetch('/api/log-suspicious', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: 'WINDOW_BLUR',
+                count: windowBlurCount,
+                timestamp: new Date().toISOString()
+            })
+        });
+    } catch (err) {
+        console.error('Failed to log window blur:', err);
+    }
+});
+</script>
+
+
+<script>
+window.addEventListener('focus', () => {
+    const warning = document.getElementById('integrity-warning');
+    if (warning) warning.style.display = 'none';
+});
 </script>
 
 </body>
